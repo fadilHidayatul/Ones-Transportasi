@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
           final lng = currentLocation?.longitude;
           center = LatLng(lat!, lng!);
 
-          print("getlocation jalan");
+          // print("getlocation jalan");
         });
       });
     } catch (e) {
@@ -94,12 +94,10 @@ class _HomePageState extends State<HomePage> {
       location.onLocationChanged.listen((event) {
         if (!mounted) return;
         setState(() {
-          print("on location1 jalan");
           center = LatLng(event.latitude!, event.longitude!);
         });
 
         if (event.latitude != null && event.longitude != null) {
-          print("on location2 jalan");
           mapController?.animateCamera(
             CameraUpdate.newCameraPosition(
               CameraPosition(

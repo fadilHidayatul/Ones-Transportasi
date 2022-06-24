@@ -2,9 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:transportation/dashboard_page.dart';
 import 'package:transportation/pages/intro/splash_page.dart';
-import 'package:transportation/pages/profile/tambah_alamat_page.dart';
 
 void main() {
   runApp(const MyApp());
