@@ -16,8 +16,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final controller = PageController(initialPage: 1);
-  int selectedTab = 1;
+  final controller = PageController(initialPage: 0);
+  int selectedTab = 0;
 
   @override
   Widget build(BuildContext context) {

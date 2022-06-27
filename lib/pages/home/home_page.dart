@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as location_manager;
+import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -54,24 +55,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> getUserLocation() async {
-    try {
-      location.getLocation().then((value) {
-        if (!mounted) return;
-        setState(() {
-          currentLocation = value;
-          final lat = currentLocation?.latitude;
-          final lng = currentLocation?.longitude;
-          center = LatLng(lat!, lng!);
-
-          // print("getlocation jalan");
-        });
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-
   Future<void> getAddressFromLatLng(LatLng center) async {
     try {
       List<Placemark> placemark =
@@ -82,6 +65,22 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         uAddress =
             "${place1.thoroughfare} ${place1.subLocality} ${place1.subAdministrativeArea}";
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> getUserLocation() async {
+    try {
+      location.getLocation().then((value) {
+        if (!mounted) return;
+        setState(() {
+          currentLocation = value;
+          final lat = currentLocation?.latitude;
+          final lng = currentLocation?.longitude;
+          center = LatLng(lat!, lng!);
+        });
       });
     } catch (e) {
       print(e);
@@ -115,10 +114,21 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<bool> askPermission() async {
+    final PermissionStatus status = await Permission.location.request();
+    if (status.isDenied == true) {
+      askPermission();
+      return false;
+    } else {
+      getUserLocation();
+      return true;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    getUserLocation();
+    askPermission();
   }
 
   @override
