@@ -52,8 +52,6 @@ class _LoginPageState extends State<LoginPage> {
         _getPhonePermission();
       } else if (permission == PermissionStatus.permanentlyDenied) {
         openAppSettings();
-      } else {
-        getDetailDevice();
       }
     } catch (e) {
       print("failed info : $e");
@@ -62,20 +60,30 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _getPhonePermission() async {
     await [Permission.phone].request().then((value) {
-      if (value.values.contains((PermissionStatus.granted))) {
-        getDetailDevice();
-      }
+      if (value.values.contains((PermissionStatus.granted))) {}
     });
   }
 
-  Future<void> getDetailDevice() async {
+  Future<void> getDetailDeviceAndAPI() async {
+    setState(() => loadingConfirm = false);
+
     platformVersion = await GetMac.macAddress;
     deviceID = await PlatformDeviceId.getDeviceId;
     imei = await DeviceInformation.deviceIMEINumber;
 
-    print("info mac : $platformVersion");
-    print("info devId : $deviceID");
-    print("info imei : $imei");
+    //API disini dan navigator didalam API
+
+    Navigator.pushReplacement(
+      context,
+      CupertinoPageRoute(
+        builder: (context) {
+          return DashboardPage();
+        },
+      ),
+    );
+
+    //call API below
+    print("info : $platformVersion - $deviceID - $imei");
   }
 
   @override
@@ -83,6 +91,13 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
 
     cekPermission();
+  }
+
+  @override
+  void dispose() {
+    controllerEmail.dispose();
+    controllerPassword.dispose();
+    super.dispose();
   }
 
   @override
@@ -153,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                             radius: 14,
                           )
                         : InkWell(
-                            onTap: () {
+                            onTap: () async {
                               //pengecekan akun login disini
                               if (ValidateEmail()
                                       .isValidEmail(controllerEmail.text) ==
@@ -164,26 +179,22 @@ class _LoginPageState extends State<LoginPage> {
                                   false) {
                                 showPopUp("Password minimal 6 karakter");
                               } else {
-                                setState(() {
-                                  loadingConfirm = true;
-                                });
+                                setState(() => loadingConfirm = true);
 
-                                //nanti setstate ini dimasukkan ke fungsi then API
-                                Timer(
-                                  Duration(seconds: 3),
-                                  () {
-                                    setState(() => loadingConfirm = false);
-
-                                    Navigator.pushReplacement(
-                                      context,
-                                      CupertinoPageRoute(
-                                        builder: (context) {
-                                          return DashboardPage();
-                                        },
-                                      ),
+                                await Permission.phone.status.then((value) {
+                                  if (value == PermissionStatus.granted) {
+                                    //panggil API
+                                    Timer(
+                                      Duration(seconds: 3),
+                                      () {
+                                        getDetailDeviceAndAPI();
+                                      },
                                     );
-                                  },
-                                );
+                                  } else {
+                                    setState(() => loadingConfirm = false);
+                                    _getPhonePermission();
+                                  }
+                                });
                               }
                             },
                             child: Container(
