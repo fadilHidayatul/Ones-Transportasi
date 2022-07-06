@@ -6,6 +6,8 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:transportation/providers/auth_provider.dart';
 import 'package:transportation/utils/validate.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -27,20 +29,47 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController controllerPassword = TextEditingController();
   TextEditingController controllerRePass = TextEditingController();
 
-  void showPopUp(String msg) {
+  Future<void> showPopUp(String title, String msg) async {
     AwesomeDialog(
             context: context,
             animType: AnimType.BOTTOMSLIDE,
             dialogType: DialogType.NO_HEADER,
-            autoHide: Duration(seconds: 3),
-            title: 'Warning',
+            autoHide: Duration(seconds: 4),
+            title: title,
             desc: msg,
             descTextStyle: TextStyle(fontSize: 16))
         .show();
   }
 
+  void apiRegister(AuthProvider prov) {
+    prov
+        .doRegister(
+      controllerNama.text,
+      controllerUsername.text,
+      controllerPhone.text,
+      controllerEmail.text,
+      controllerPassword.text,
+      controllerRePass.text,
+    )
+        .then((value) {
+      if (!mounted) return;
+      setState(() => loadingConfirm = false);
+
+      showPopUp("Success", "Berhasil melakukan register, silahkan login!");
+
+      Timer(Duration(seconds: 4), () => Navigator.pop(context));
+    }).catchError((onError) {
+      if (!mounted) return;
+      setState(() => loadingConfirm = false);
+
+      showPopUp("Warning", "$onError");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final prov = Provider.of<AuthProvider>(context, listen: false);
+
     return Scaffold(
       body: Column(
         children: [
@@ -208,35 +237,29 @@ class _RegisterPageState extends State<RegisterPage> {
                               controllerEmail.text.isEmpty ||
                               controllerPassword.text.isEmpty ||
                               controllerRePass.text.isEmpty) {
-                            showPopUp("Semua field harus diisi");
+                            showPopUp("Warning", "Semua field harus diisi");
                           } else if (ValidatePhone()
                                   .isValidPhone(controllerPhone.text) ==
                               false) {
-                            showPopUp("Masukkan No HP yang valid");
+                            showPopUp("Warning", "Masukkan No HP yang valid");
                           } else if (ValidateEmail()
                                   .isValidEmail(controllerEmail.text) ==
                               false) {
-                            showPopUp("Masukkan email yang benar");
+                            showPopUp("Warning", "Masukkan email yang benar");
                           } else if (LengthPassword()
                                   .minChar(controllerPassword.text) ==
                               false) {
-                            showPopUp("Password minimal 6 karakter");
+                            showPopUp("Warning", "Password minimal 6 karakter");
                           } else if (controllerPassword.text !=
                               controllerRePass.text) {
-                            showPopUp("Harap Masukkan Password yang sama");
+                            showPopUp(
+                                "Warning", "Harap Masukkan Password yang sama");
                           } else {
                             setState(() {
                               loadingConfirm = true;
                             });
 
-                            //ganti ke api then
-                            Timer(
-                              Duration(seconds: 3),
-                              () {
-                                setState(() => loadingConfirm = false);
-                                Navigator.pop(context);
-                              },
-                            );
+                            apiRegister(prov);
                           }
                         },
                         child: Container(
@@ -275,5 +298,16 @@ class _RegisterPageState extends State<RegisterPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    controllerNama.dispose();
+    controllerUsername.dispose();
+    controllerPhone.dispose();
+    controllerEmail.dispose();
+    controllerPassword.dispose();
+    controllerRePass.dispose();
+    super.dispose();
   }
 }

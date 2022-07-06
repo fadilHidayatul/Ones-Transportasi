@@ -2,10 +2,15 @@
 
 import 'dart:async';
 
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transportation/dashboard_page.dart';
 import 'package:transportation/pages/intro/login_page.dart';
+import 'package:transportation/providers/auth_provider.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({Key? key}) : super(key: key);
@@ -15,22 +20,64 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  bool firstTimeLogin = true;
   @override
   void initState() {
     super.initState();
-
     check();
   }
 
-  void check() {
-    Timer(
-        Duration(seconds: 5),
-        () => Navigator.pushReplacement(context, CupertinoPageRoute(
-              builder: (context) {
-                //check data disini nanti
-                return LoginPage();
-              },
-            )));
+  Future<void> check() async {
+    var prov = Provider.of<AuthProvider>(context, listen: false);
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    firstTimeLogin = sp.getBool('firsttimelogin') ?? true;
+
+    if (firstTimeLogin) {
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => LoginPage(),
+        ),
+      );
+    } else {
+      prov.checkTokenUserIsValid().then((value) {
+        if (value == true) {
+          Navigator.pushReplacement(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => DashboardPage(),
+            ),
+          );
+        } else {
+          showPopUp("Token Login Expire, Silahkan Login Kembali");
+          Timer(
+            Duration(seconds: 4),
+            () {
+              Navigator.pushReplacement(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => LoginPage(),
+                ),
+              );
+            },
+          );
+        }
+      }).catchError((onError) {
+        showPopUp("onError");
+      });
+    }
+  }
+
+  void showPopUp(String msg) {
+    AwesomeDialog(
+      context: context,
+      animType: AnimType.BOTTOMSLIDE,
+      dialogType: DialogType.NO_HEADER,
+      autoHide: Duration(seconds: 3),
+      title: 'Warning',
+      desc: msg,
+      descTextStyle: TextStyle(fontSize: 16),
+    ).show();
   }
 
   @override

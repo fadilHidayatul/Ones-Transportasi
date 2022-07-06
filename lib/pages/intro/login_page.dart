@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:mac_address/mac_address.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:platform_device_id/platform_device_id.dart';
+import 'package:provider/provider.dart';
 import 'package:transportation/dashboard_page.dart';
 import 'package:transportation/pages/intro/register_page.dart';
+import 'package:transportation/providers/auth_provider.dart';
 import 'package:transportation/utils/validate.dart';
 
 class LoginPage extends StatefulWidget {
@@ -27,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   bool isObscure = true;
   bool loadingConfirm = false;
 
-  String? platformVersion;
+  String? mac;
   String? deviceID;
   String? imei;
 
@@ -52,38 +54,50 @@ class _LoginPageState extends State<LoginPage> {
         _getPhonePermission();
       } else if (permission == PermissionStatus.permanentlyDenied) {
         openAppSettings();
+      }else{
+        getDetailDevice();
       }
     } catch (e) {
-      print("failed info : $e");
+      showPopUp("$e");
     }
   }
 
   Future<void> _getPhonePermission() async {
     await [Permission.phone].request().then((value) {
-      if (value.values.contains((PermissionStatus.granted))) {}
+      if (value.values.contains((PermissionStatus.granted))) {
+        getDetailDevice();
+      }
     });
   }
 
-  Future<void> getDetailDeviceAndAPI() async {
-    setState(() => loadingConfirm = false);
-
-    platformVersion = await GetMac.macAddress;
+  Future<void> getDetailDevice() async {
+    mac = await GetMac.macAddress;
     deviceID = await PlatformDeviceId.getDeviceId;
     imei = await DeviceInformation.deviceIMEINumber;
+  }
 
-    //API disini dan navigator didalam API
+  void apiLogin(AuthProvider prov){
+    prov
+        .doLogin(controllerEmail.text, controllerPassword.text, mac!, deviceID!,
+            imei!)
+        .then((value) {
+      if (!mounted) return;
+      setState(() => loadingConfirm = false);
 
-    Navigator.pushReplacement(
-      context,
-      CupertinoPageRoute(
-        builder: (context) {
-          return DashboardPage();
-        },
-      ),
-    );
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) {
+            return DashboardPage();
+          },
+        ),
+      );
+    }).catchError((onError) {
+      if (!mounted) return;
+      setState(() => loadingConfirm = false);
 
-    //call API below
-    print("info : $platformVersion - $deviceID - $imei");
+      showPopUp("Error login : \n$onError");
+    });
   }
 
   @override
@@ -102,6 +116,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final prov = Provider.of<AuthProvider>(context, listen: false);
+
     return Scaffold(
       body: Column(
         children: [
@@ -184,13 +200,9 @@ class _LoginPageState extends State<LoginPage> {
                                 await Permission.phone.status.then((value) {
                                   if (value == PermissionStatus.granted) {
                                     //panggil API
-                                    Timer(
-                                      Duration(seconds: 3),
-                                      () {
-                                        getDetailDeviceAndAPI();
-                                      },
-                                    );
+                                    apiLogin(prov);
                                   } else {
+                                    if (!mounted) return;
                                     setState(() => loadingConfirm = false);
                                     _getPhonePermission();
                                   }
